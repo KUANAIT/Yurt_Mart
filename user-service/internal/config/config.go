@@ -20,7 +20,7 @@ type Config struct {
 
 func LoadConfig() *Config {
 	return &Config{
-		ServerPort:   50051,
+		ServerPort:   50053,
 		MongoURI:     "mongodb://localhost:27017",
 		DBName:       "user_service",
 		NATSAddress:  getEnv("NATS_ADDRESS", "nats://localhost:4222"),
@@ -29,7 +29,7 @@ func LoadConfig() *Config {
 		SMTPPort:     getEnvAsInt("SMTP_PORT", 465),
 		SMTPUsername: getEnv("SMTP_USERNAME", "aytzhanovk@internet.ru"),
 		SMTPPassword: getEnv("SMTP_PASSWORD", "Q1mfUaA5BcuryV4Fo3Gq"),
-		GRPCPort:     getEnvAsInt("GRPC_PORT", 50051),
+		GRPCPort:     getEnvAsInt("GRPC_PORT", 50053),
 	}
 }
 

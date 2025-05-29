@@ -35,7 +35,7 @@ func (s *Service) Login(ctx context.Context, req *pb.LoginRequest) (*pb.LoginRes
 		return nil, status.Error(codes.Unauthenticated, "invalid credentials")
 	}
 
-	if user.Password != req.Password {
+	if !s.userService.VerifyPassword(user.Password, req.Password) {
 		return nil, status.Error(codes.Unauthenticated, "invalid credentials")
 	}
 

@@ -6,6 +6,7 @@ import (
 
 	"github.com/google/uuid"
 	"user-service/internal/core/domain"
+	"user-service/internal/core/utils"
 )
 
 type UserService interface {
@@ -14,6 +15,7 @@ type UserService interface {
 	GetByEmail(ctx context.Context, email string) (*domain.User, error)
 	UpdateUser(ctx context.Context, id, email, name string) (*domain.User, error)
 	DeleteUser(ctx context.Context, id string) error
+	VerifyPassword(hashedPassword, plainPassword string) bool
 }
 
 type userService struct {
@@ -32,16 +34,16 @@ func (s *userService) Register(ctx context.Context, email, password, name string
 		return nil, errors.New("user already exists")
 	}
 
-	// hashedPassword, err := hashPassword(password)
-	// if err != nil {
-	//     return nil, err
-	// }
+	hashedPassword, err := utils.HashPassword(password)
+	if err != nil {
+		return nil, err
+	}
 
 	newUser := &domain.User{
 		ID:       uuid.New().String(),
 		Email:    email,
 		Name:     name,
-		Password: password,
+		Password: hashedPassword,
 	}
 
 	if err := s.repo.Create(ctx, newUser); err != nil {
@@ -112,4 +114,8 @@ func (s *userService) DeleteUser(ctx context.Context, id string) error {
 	}
 
 	return s.repo.Delete(ctx, id)
+}
+
+func (s *userService) VerifyPassword(hashedPassword, plainPassword string) bool {
+	return utils.VerifyPassword(hashedPassword, plainPassword)
 }
