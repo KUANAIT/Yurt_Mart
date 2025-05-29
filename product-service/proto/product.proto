@@ -1,0 +1,62 @@
+syntax = "proto3";
+
+package product;
+
+option go_package = "client-service/proto/productpb";
+
+// Модель Product
+message Product {
+  string id = 1;
+  string name = 2;
+  string description = 3;
+  string category = 4;
+  double price = 5;
+  int32 quantity = 6;
+  string user_id = 7;
+}
+
+// Create
+message CreateProductRequest {
+  Product product = 1;
+}
+message CreateProductResponse {
+  string id = 1;
+}
+
+// Get by ID
+message GetProductRequest {
+  string id = 1;
+}
+message GetProductResponse {
+  Product product = 1;
+}
+
+// Delete
+message DeleteProductRequest {
+  string id = 1;
+}
+message DeleteProductResponse {
+  string message = 1;
+}
+
+// List all
+message ListProductsRequest {}
+message ListProductsResponse {
+  repeated Product products = 1;
+}
+
+// Get by category
+message GetProductsByCategoryRequest {
+  string category = 1;
+}
+message GetProductsByCategoryResponse {
+  repeated Product products = 1;
+}
+
+service ProductService {
+  rpc CreateProduct(CreateProductRequest) returns (CreateProductResponse);
+  rpc GetProduct(GetProductRequest) returns (GetProductResponse);
+  rpc DeleteProduct(DeleteProductRequest) returns (DeleteProductResponse);
+  rpc ListProducts(ListProductsRequest) returns (ListProductsResponse);
+  rpc GetProductsByCategory(GetProductsByCategoryRequest) returns (GetProductsByCategoryResponse);
+}
