@@ -5,7 +5,6 @@ import (
 	"context"
 )
 
-// MockUserService implements ports.UserServicePort
 type MockUserService struct {
 	users map[string]*ports.UserResponse
 }
@@ -37,7 +36,6 @@ func (m *MockUserService) Close() error {
 	return nil
 }
 
-// MockCache implements ports.CachePort
 type MockCache struct {
 	store map[string]interface{}
 }
@@ -50,8 +48,6 @@ func NewMockCache() *MockCache {
 
 func (m *MockCache) Get(ctx context.Context, key string, value interface{}) (bool, error) {
 	if _, ok := m.store[key]; ok {
-		// In a real implementation, we would use reflection to set the value
-		// For simplicity in tests, we'll just return true
 		return true, nil
 	}
 	return false, nil
@@ -67,7 +63,6 @@ func (m *MockCache) Delete(ctx context.Context, key string) error {
 	return nil
 }
 
-// MockEventPublisher implements ports.EventPublisherPort
 type MockEventPublisher struct{}
 
 func NewMockEventPublisher() *MockEventPublisher {

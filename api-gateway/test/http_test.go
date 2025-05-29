@@ -35,7 +35,6 @@ func setupTest(t *testing.T) {
 	log := logger.NewLogger()
 	handler = handlers.NewHTTPHandler(gatewayService, log)
 
-	// Create a new test server
 	mux := http.NewServeMux()
 	mux.HandleFunc("/api/v1/register", handler.RegisterUser)
 	mux.HandleFunc("/api/v1/user", handler.GetUser)
@@ -68,7 +67,6 @@ func TestRegisterUser(t *testing.T) {
 	setupTest(t)
 	defer teardownTest()
 
-	// Test data
 	userData := map[string]string{
 		"email":    "testno@example.com",
 		"password": "testpassword555",
@@ -80,7 +78,6 @@ func TestRegisterUser(t *testing.T) {
 		t.Fatalf("Failed to marshal user data: %v", err)
 	}
 
-	// Make POST request
 	resp, err := http.Post(
 		server.URL+"/api/v1/register",
 		"application/json",
@@ -95,7 +92,6 @@ func TestRegisterUser(t *testing.T) {
 		t.Errorf("Expected status code %d, got %d", http.StatusOK, resp.StatusCode)
 	}
 
-	// Parse response
 	var response struct {
 		UserID string `json:"user_id"`
 	}
@@ -107,10 +103,8 @@ func TestRegisterUser(t *testing.T) {
 		t.Error("Expected non-empty user ID in response")
 	}
 
-	// Store user ID for GetUser test
 	t.Logf("Registered user ID: %s", response.UserID)
 
-	// Test GetUser with the registered user ID
 	testGetUser(t, response.UserID)
 }
 
@@ -125,7 +119,6 @@ func testGetUser(t *testing.T, userID string) {
 		t.Errorf("Expected status code %d, got %d", http.StatusOK, resp.StatusCode)
 	}
 
-	// Parse response
 	var user struct {
 		ID    string `json:"id"`
 		Email string `json:"email"`
@@ -144,9 +137,8 @@ func TestInvalidRegistration(t *testing.T) {
 	setupTest(t)
 	defer teardownTest()
 
-	// Test with invalid data
 	invalidData := map[string]string{
-		"email": "invalid-email", // Invalid email format
+		"email": "invalid-email",
 		"name":  "Test User",
 	}
 

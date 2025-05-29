@@ -27,12 +27,10 @@ func NewServer(handler *handlers.HTTPHandler, logger logger.Logger, port int) *S
 func (s *Server) Start() error {
 	router := http.NewServeMux()
 
-	// API routes
 	router.HandleFunc("/api/v1/register", s.handler.RegisterUser)
 	router.HandleFunc("/api/v1/user", s.handler.GetUser)
 	router.HandleFunc("/health", s.handler.HealthCheck)
 
-	// Middleware chain
 	handler := s.loggingMiddleware(router)
 	handler = s.recoveryMiddleware(handler)
 
@@ -70,12 +68,10 @@ func (s *Server) recoveryMiddleware(next http.Handler) http.Handler {
 func (s *Server) Shutdown(ctx context.Context) error {
 	router := http.NewServeMux()
 
-	// API routes
 	router.HandleFunc("/api/v1/register", s.handler.RegisterUser)
 	router.HandleFunc("/api/v1/user", s.handler.GetUser)
 	router.HandleFunc("/health", s.handler.HealthCheck)
 
-	// Middleware chain
 	handler := s.loggingMiddleware(router)
 	handler = s.recoveryMiddleware(handler)
 

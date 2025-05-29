@@ -34,7 +34,6 @@ func (h *HTTPHandler) RegisterUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Validate required fields
 	if request.Email == "" {
 		http.Error(w, "Email is required", http.StatusBadRequest)
 		return
@@ -48,13 +47,11 @@ func (h *HTTPHandler) RegisterUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Validate email format
 	if !strings.Contains(request.Email, "@") {
 		http.Error(w, "Invalid email format", http.StatusBadRequest)
 		return
 	}
 
-	// Validate password length
 	if len(request.Password) < 8 {
 		http.Error(w, "Password must be at least 8 characters long", http.StatusBadRequest)
 		return

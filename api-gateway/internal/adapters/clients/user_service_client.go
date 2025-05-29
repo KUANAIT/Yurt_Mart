@@ -43,7 +43,6 @@ func (c *UserServiceClient) GetUser(ctx context.Context, userID string) (*ports.
 		return nil, err
 	}
 
-	// Convert gRPC response to internal type
 	return &ports.UserResponse{
 		ID:    resp.UserId,
 		Email: resp.Email,
