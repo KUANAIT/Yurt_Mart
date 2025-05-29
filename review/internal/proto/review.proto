@@ -1,0 +1,39 @@
+syntax = "proto3";
+
+package review;
+
+service ReviewService {
+  rpc CreateReview (CreateReviewRequest) returns (CreateReviewResponse);
+  rpc GetProductReviews (GetProductReviewsRequest) returns (GetProductReviewsResponse);
+  rpc GetUserReviews (GetUserReviewsRequest) returns (GetUserReviewsResponse);
+  rpc UpdateReview (UpdateReviewRequest) returns (UpdateReviewResponse);
+  rpc DeleteReview (DeleteReviewRequest) returns (DeleteReviewResponse);
+  rpc GetAverageProductRating (GetAverageProductRatingRequest) returns (GetAverageProductRatingResponse);
+}
+
+message Review {
+  string id = 1;
+  string user_id = 2;
+  string product_id = 3;
+  int32 rating = 4;
+  string comment = 5;
+  string timestamp = 6;
+}
+
+message CreateReviewRequest { string user_id = 1; string product_id = 2; int32 rating = 3; string comment = 4; }
+message CreateReviewResponse { Review review = 1; }
+
+message GetProductReviewsRequest { string product_id = 1; }
+message GetProductReviewsResponse { repeated Review reviews = 1; }
+
+message GetUserReviewsRequest { string user_id = 1; }
+message GetUserReviewsResponse { repeated Review reviews = 1; }
+
+message UpdateReviewRequest { string review_id = 1; int32 rating = 2; string comment = 3; }
+message UpdateReviewResponse { Review review = 1; }
+
+message DeleteReviewRequest { string review_id = 1; }
+message DeleteReviewResponse { bool success = 1; }
+
+message GetAverageProductRatingRequest { string product_id = 1; }
+message GetAverageProductRatingResponse { double average_rating = 1; }
