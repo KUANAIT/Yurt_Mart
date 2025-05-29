@@ -1,0 +1,39 @@
+syntax = "proto3";
+
+package apigateway.user;
+
+option go_package = "api-gateway/proto/apigateway";
+
+// User service definition
+service UserService {
+  // Register a new user
+  rpc Register(RegisterRequest) returns (RegisterResponse) {}
+  // Get user information
+  rpc GetUser(GetUserRequest) returns (GetUserResponse) {}
+}
+
+// Register request message
+message RegisterRequest {
+  string username = 1;
+  string email = 2;
+  string password = 3;
+}
+
+// Register response message
+message RegisterResponse {
+  string user_id = 1;
+  string username = 2;
+  string email = 3;
+}
+
+// GetUser request message
+message GetUserRequest {
+  string user_id = 1;
+}
+
+// GetUser response message
+message GetUserResponse {
+  string user_id = 1;
+  string username = 2;
+  string email = 3;
+} 
