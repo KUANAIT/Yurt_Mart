@@ -17,7 +17,7 @@ type Config struct {
 func Load() *Config {
 	return &Config{
 		HTTPPort:       getEnvAsInt("HTTP_PORT", 8080),
-		UserServiceURL: getEnv("USER_SERVICE_URL", "localhost:50051"),
+		UserServiceURL: getEnv("USER_SERVICE_URL", "localhost:50053"),
 		RedisAddress:   getEnv("REDIS_ADDRESS", "localhost:6379"),
 		RedisPassword:  getEnv("REDIS_PASSWORD", ""),
 		RedisDB:        getEnvAsInt("REDIS_DB", 0),
