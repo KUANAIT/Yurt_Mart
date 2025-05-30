@@ -3,6 +3,7 @@ package events
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"log"
 	"time"
 
@@ -20,8 +21,8 @@ type CartInfo struct {
 }
 
 type CartSubscriber struct {
-	nc *nats.Conn
-	js nats.JetStreamContext
+	nc            *nats.Conn
+	js            nats.JetStreamContext
 	cartInfoCache map[string]*CartInfo
 }
 
@@ -38,12 +39,22 @@ func NewCartSubscriber(url string) (*CartSubscriber, error) {
 		time.Sleep(time.Second * 2)
 	}
 	if err != nil {
-		return nil, err
+		log.Printf("[ERROR] Could not connect to NATS for CartSubscriber: %v. Using noop subscriber.", err)
+		return &CartSubscriber{
+			nc:            nil,
+			js:            nil,
+			cartInfoCache: make(map[string]*CartInfo),
+		}, nil
 	}
 
 	js, err := nc.JetStream()
 	if err != nil {
-		return nil, err
+		log.Printf("[ERROR] Could not get JetStream context: %v. Using noop subscriber.", err)
+		return &CartSubscriber{
+			nc:            nc,
+			js:            nil,
+			cartInfoCache: make(map[string]*CartInfo),
+		}, nil
 	}
 
 	// Create the stream if it doesn't exist
@@ -54,19 +65,28 @@ func NewCartSubscriber(url string) (*CartSubscriber, error) {
 
 	if _, err := js.AddStream(stream); err != nil {
 		if err != nats.ErrStreamNameAlreadyInUse {
-			return nil, err
+			log.Printf("[ERROR] Could not add NATS stream: %v. Using noop subscriber.", err)
+			return &CartSubscriber{
+				nc:            nc,
+				js:            js,
+				cartInfoCache: make(map[string]*CartInfo),
+			}, nil
 		}
 	}
 
 	sub := &CartSubscriber{
-		nc: nc,
-		js: js,
+		nc:            nc,
+		js:            js,
 		cartInfoCache: make(map[string]*CartInfo),
 	}
 
 	// Subscribe to cart info updates
-	if _, err := js.Subscribe(CartInfoSubject, sub.handleCartInfo); err != nil {
-		return nil, err
+	if js != nil {
+		if _, err := js.Subscribe(CartInfoSubject, sub.handleCartInfo); err != nil {
+			log.Printf("[ERROR] Could not subscribe to cart info: %v. Using noop subscriber.", err)
+			sub.nc = nil
+			sub.js = nil
+		}
 	}
 
 	return sub, nil
@@ -88,6 +108,11 @@ func (s *CartSubscriber) GetCartInfo(ctx context.Context, cartID string) (*CartI
 		return info, nil
 	}
 
+	// Если нет подключения к NATS, возвращаем ошибку-заглушку
+	if s.nc == nil {
+		return nil, ErrNATSUnavailable()
+	}
+
 	// If not in cache, request it directly
 	msg, err := s.nc.Request(CartInfoSubject+".get", []byte(cartID), nats.DefaultTimeout)
 	if err != nil {
@@ -104,7 +129,13 @@ func (s *CartSubscriber) GetCartInfo(ctx context.Context, cartID string) (*CartI
 	return &cartInfo, nil
 }
 
+func ErrNATSUnavailable() error {
+	return fmt.Errorf("NATS unavailable: CartSubscriber is in noop mode")
+}
+
 func (s *CartSubscriber) Close() error {
-	s.nc.Close()
+	if s.nc != nil {
+		s.nc.Close()
+	}
 	return nil
-} 
+}

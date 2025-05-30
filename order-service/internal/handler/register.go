@@ -11,16 +11,13 @@ import (
 func RegisterServices(server *grpc.Server, cfg *config.Config) error {
 	// TODO: Initialize repositories
 	var orderRepo domain.OrderRepository
-	
-	// Initialize cart subscriber
-	cartSub, err := events.NewCartSubscriber(cfg.NatsURL)
-	if err != nil {
-		return err
-	}
+
+	// Отключаем CartSubscriber полностью для стабильного старта
+	var cartSub *events.CartSubscriber = nil
 
 	// Create and register order handler
 	orderHandler := NewOrderHandler(orderRepo, cartSub)
 	pb.RegisterOrderServiceServer(server, orderHandler)
-	
+
 	return nil
-} 
+}

@@ -5,10 +5,10 @@ import (
 	"errors"
 	"time"
 
-	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/mongo"
 	"github.com/hsibAD/payment-service/internal/domain"
+	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
@@ -19,16 +19,16 @@ type PaymentRepository struct {
 
 type mongoPayment struct {
 	ID            primitive.ObjectID `bson:"_id,omitempty"`
-	OrderID       string            `bson:"order_id"`
-	UserID        string            `bson:"user_id"`
-	Amount        float64           `bson:"amount"`
-	Currency      string            `bson:"currency"`
-	Status        string            `bson:"status"`
-	PaymentMethod string            `bson:"payment_method"`
-	TransactionID string            `bson:"transaction_id,omitempty"`
-	ErrorMessage  string            `bson:"error_message,omitempty"`
-	CreatedAt     time.Time         `bson:"created_at"`
-	UpdatedAt     time.Time         `bson:"updated_at"`
+	OrderID       string             `bson:"order_id"`
+	UserID        string             `bson:"user_id"`
+	Amount        float64            `bson:"amount"`
+	Currency      string             `bson:"currency"`
+	Status        string             `bson:"status"`
+	PaymentMethod string             `bson:"payment_method"`
+	TransactionID string             `bson:"transaction_id,omitempty"`
+	ErrorMessage  string             `bson:"error_message,omitempty"`
+	CreatedAt     time.Time          `bson:"created_at"`
+	UpdatedAt     time.Time          `bson:"updated_at"`
 }
 
 func NewPaymentRepository(db *mongo.Database) *PaymentRepository {
@@ -72,7 +72,7 @@ func (r *PaymentRepository) GetByOrderID(ctx context.Context, orderID string) ([
 	if err != nil {
 		return nil, err
 	}
-	defer cursor.Close(ctx)
+	defer func() { _ = cursor.Close(ctx) }()
 
 	var mPayments []mongoPayment
 	if err = cursor.All(ctx, &mPayments); err != nil {
@@ -99,7 +99,7 @@ func (r *PaymentRepository) GetByUserID(ctx context.Context, userID string, page
 	if err != nil {
 		return nil, 0, err
 	}
-	defer cursor.Close(ctx)
+	defer func() { _ = cursor.Close(ctx) }()
 
 	var mPayments []mongoPayment
 	if err = cursor.All(ctx, &mPayments); err != nil {
@@ -118,6 +118,39 @@ func (r *PaymentRepository) GetByUserID(ctx context.Context, userID string, page
 	}
 
 	return payments, int(total), nil
+}
+
+func (r *PaymentRepository) GetPendingPayments(ctx context.Context, page, limit int) ([]*domain.Payment, int, error) {
+	skip := (page - 1) * limit
+
+	opts := options.Find().
+		SetSkip(int64(skip)).
+		SetLimit(int64(limit)).
+		SetSort(bson.M{"created_at": -1})
+
+	cursor, err := r.collection.Find(ctx, bson.M{"status": domain.PaymentStatusPending}, opts)
+	if err != nil {
+		return nil, 0, err
+	}
+	defer func() { _ = cursor.Close(ctx) }()
+
+	var mPayments []mongoPayment
+	if err = cursor.All(ctx, &mPayments); err != nil {
+		return nil, 0, err
+	}
+
+	// Get total count for pagination
+	count, err := r.collection.CountDocuments(ctx, bson.M{"status": domain.PaymentStatusPending})
+	if err != nil {
+		return nil, 0, err
+	}
+
+	payments := make([]*domain.Payment, len(mPayments))
+	for i, mPayment := range mPayments {
+		payments[i] = fromMongoPayment(&mPayment)
+	}
+
+	return payments, int(count), nil
 }
 
 func (r *PaymentRepository) Update(ctx context.Context, payment *domain.Payment) error {
@@ -154,20 +187,21 @@ func (r *PaymentRepository) UpdateStatus(ctx context.Context, paymentID string, 
 		},
 	}
 
-	result, err := r.collection.UpdateOne(ctx, bson.M{"_id": objectID}, update)
-	if err != nil {
-		return err
-	}
-
-	if result.MatchedCount == 0 {
-		return domain.ErrInvalidPaymentID
-	}
-
-	return nil
+	_, err = r.collection.UpdateOne(ctx, bson.M{"_id": objectID}, update)
+	return err
 }
 
-func toMongoPayment(payment *domain.Payment) *mongoPayment {
-	return &mongoPayment{
+// Добавляем функции конвертации между domain.Payment и mongoPayment
+func toMongoPayment(payment *domain.Payment) mongoPayment {
+	var id primitive.ObjectID
+	if payment.ID != "" {
+		objectID, err := primitive.ObjectIDFromHex(payment.ID)
+		if err == nil {
+			id = objectID
+		}
+	}
+	return mongoPayment{
+		ID:            id,
 		OrderID:       payment.OrderID,
 		UserID:        payment.UserID,
 		Amount:        payment.Amount,
@@ -181,18 +215,18 @@ func toMongoPayment(payment *domain.Payment) *mongoPayment {
 	}
 }
 
-func fromMongoPayment(mPayment *mongoPayment) *domain.Payment {
+func fromMongoPayment(m *mongoPayment) *domain.Payment {
 	return &domain.Payment{
-		ID:            mPayment.ID.Hex(),
-		OrderID:       mPayment.OrderID,
-		UserID:        mPayment.UserID,
-		Amount:        mPayment.Amount,
-		Currency:      mPayment.Currency,
-		Status:        domain.PaymentStatus(mPayment.Status),
-		PaymentMethod: domain.PaymentMethod(mPayment.PaymentMethod),
-		TransactionID: mPayment.TransactionID,
-		ErrorMessage:  mPayment.ErrorMessage,
-		CreatedAt:     mPayment.CreatedAt,
-		UpdatedAt:     mPayment.UpdatedAt,
+		ID:            m.ID.Hex(),
+		OrderID:       m.OrderID,
+		UserID:        m.UserID,
+		Amount:        m.Amount,
+		Currency:      m.Currency,
+		Status:        m.Status,
+		PaymentMethod: m.PaymentMethod,
+		TransactionID: m.TransactionID,
+		ErrorMessage:  m.ErrorMessage,
+		CreatedAt:     m.CreatedAt,
+		UpdatedAt:     m.UpdatedAt,
 	}
-} 
+}

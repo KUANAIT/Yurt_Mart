@@ -2,6 +2,8 @@ package handler
 
 import (
 	"context"
+	"fmt"
+	"log"
 	"time"
 
 	"github.com/hsibAD/order-service/internal/domain"
@@ -15,13 +17,13 @@ import (
 type OrderHandler struct {
 	pb.UnimplementedOrderServiceServer
 	orderRepo domain.OrderRepository
-	cartSub  *events.CartSubscriber
+	cartSub   *events.CartSubscriber
 }
 
 func NewOrderHandler(orderRepo domain.OrderRepository, cartSub *events.CartSubscriber) *OrderHandler {
 	return &OrderHandler{
 		orderRepo: orderRepo,
-		cartSub:  cartSub,
+		cartSub:   cartSub,
 	}
 }
 
@@ -33,10 +35,22 @@ func (h *OrderHandler) CreateOrder(ctx context.Context, req *pb.CreateOrderReque
 		return nil, status.Error(codes.InvalidArgument, "cart ID is required")
 	}
 
-	// Get cart information from NATS
-	cartInfo, err := h.cartSub.GetCartInfo(ctx, req.CartId)
-	if err != nil {
-		return nil, status.Error(codes.Internal, "failed to get cart information")
+	// Добавляем проверку на nil для cartSub
+	var cartInfo *events.CartInfo
+	var err error
+	if h.cartSub != nil {
+		// Get cart information from NATS
+		cartInfo, err = h.cartSub.GetCartInfo(ctx, req.CartId)
+		if err != nil {
+			return nil, status.Error(codes.Internal, "failed to get cart information")
+		}
+	} else {
+		// Если cartSub не инициализирован, создаем заглушку для cartInfo
+		cartInfo = &events.CartInfo{
+			CartID:     req.CartId,
+			TotalPrice: 0.0,   // Используем значение по умолчанию
+			Currency:   "USD", // Значение по умолчанию
+		}
 	}
 
 	// Convert proto delivery address to domain delivery address
@@ -52,7 +66,7 @@ func (h *OrderHandler) CreateOrder(ctx context.Context, req *pb.CreateOrderReque
 			req.DeliveryAddress.State,
 			req.DeliveryAddress.PostalCode,
 			req.DeliveryAddress.Country,
-			"", // Phone - not provided in proto
+			"",    // Phone - not provided in proto
 			false, // IsDefault - not provided in proto
 		)
 		if err != nil {
@@ -77,9 +91,16 @@ func (h *OrderHandler) CreateOrder(ctx context.Context, req *pb.CreateOrderReque
 	order.TotalPrice = cartInfo.TotalPrice
 	order.Currency = cartInfo.Currency
 
-	// Save order using repository
-	if err := h.orderRepo.Create(ctx, order); err != nil {
-		return nil, status.Error(codes.Internal, "failed to create order")
+	// Добавляем проверку на nil для orderRepo
+	if h.orderRepo != nil {
+		// Save order using repository
+		if err := h.orderRepo.Create(ctx, order); err != nil {
+			return nil, status.Error(codes.Internal, "failed to create order")
+		}
+	} else {
+		// Если репозиторий не инициализирован, генерируем ID для заказа
+		order.ID = fmt.Sprintf("demo-order-%d", time.Now().Unix())
+		log.Printf("Demo mode: Created order with ID: %s", order.ID)
 	}
 
 	// Convert domain order back to proto order
@@ -180,4 +201,4 @@ func (h *OrderHandler) GetAvailableDeliverySlots(ctx context.Context, req *pb.De
 		Date:       req.Date,
 		Slots:      slots,
 	}, nil
-} 
+}

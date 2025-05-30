@@ -1,33 +1,13 @@
-# Build stage
-FROM golang:1.23-alpine AS builder
-
+# syntax=docker/dockerfile:1
+FROM golang:1.23.0-alpine AS builder
 WORKDIR /app
-
-# Install required packages
-RUN apk add --no-cache git
-
-# Copy go mod and sum files
-COPY go.mod go.sum ./
-
-# Download dependencies
-RUN go mod download
-
-# Copy source code
 COPY . .
+RUN go mod download
+RUN go build -o app ./cmd/main.go
 
-# Build the application
-RUN CGO_ENABLED=0 GOOS=linux go build -o /order-service ./cmd/main.go
-
-# Final stage
 FROM alpine:latest
-
-WORKDIR /app
-
-# Copy binary from builder
-COPY --from=builder /order-service .
-
-# Expose port
+WORKDIR /root/
+COPY --from=builder /app/app .
 EXPOSE 50051
+CMD ["./app"]
 
-# Run the application
-CMD ["./order-service"] 

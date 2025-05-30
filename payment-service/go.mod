@@ -54,3 +54,4 @@ require (
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20250528174236-200df99c418a // indirect
 	rsc.io/tmplfunc v0.0.3 // indirect
 )
+

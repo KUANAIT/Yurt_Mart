@@ -9,6 +9,7 @@ import (
 )
 
 func main() {
+	log.Println("Order-service starting...")
 	// Load configuration
 	cfg := config.Load()
 
@@ -18,6 +19,7 @@ func main() {
 	for i := 0; i < 5; i++ {
 		srv, err = server.NewServer(cfg)
 		if err == nil {
+			log.Println("Order-service: gRPC server created successfully.")
 			break
 		}
 		log.Printf("Failed to create server, attempt %d: %v", i+1, err)
@@ -27,7 +29,8 @@ func main() {
 		log.Fatalf("Failed to create server after retries: %v", err)
 	}
 
+	log.Println("Order-service: running gRPC server...")
 	if err := srv.Run(); err != nil {
 		log.Fatalf("Failed to run server: %v", err)
 	}
-} 
+}
