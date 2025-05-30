@@ -1,0 +1,106 @@
+syntax = "proto3";
+
+package order;
+
+option go_package = "github.com/hsibAD/order-service/proto";
+
+import "google/protobuf/timestamp.proto";
+import "google/protobuf/empty.proto";
+
+service OrderService {
+  // Order Management
+  rpc CreateOrder(CreateOrderRequest) returns (Order);
+  rpc GetOrder(GetOrderRequest) returns (Order);
+  rpc UpdateOrderStatus(UpdateOrderStatusRequest) returns (Order);
+  
+  // Address Management
+  rpc AddDeliveryAddress(DeliveryAddress) returns (DeliveryAddress);
+  rpc UpdateDeliveryAddress(DeliveryAddress) returns (DeliveryAddress);
+  rpc DeleteDeliveryAddress(DeleteAddressRequest) returns (google.protobuf.Empty);
+  rpc ListDeliveryAddresses(ListAddressesRequest) returns (ListAddressesResponse);
+  
+  // Delivery Time Management
+  rpc SetDeliveryTime(SetDeliveryTimeRequest) returns (Order);
+  rpc GetAvailableDeliverySlots(DeliverySlotsRequest) returns (DeliverySlotsResponse);
+}
+
+message Order {
+  string id = 1;
+  string user_id = 2;
+  string cart_id = 3;
+  double total_price = 4;
+  string currency = 5;
+  string status = 6;
+  DeliveryAddress delivery_address = 7;
+  google.protobuf.Timestamp delivery_time = 8;
+  google.protobuf.Timestamp created_at = 9;
+  google.protobuf.Timestamp updated_at = 10;
+}
+
+message OrderItem {
+  string product_id = 1;
+  string product_name = 2;
+  int32 quantity = 3;
+  double unit_price = 4;
+  double total_price = 5;
+}
+
+message DeliveryAddress {
+  string id = 1;
+  string user_id = 2;
+  string street = 3;
+  string city = 4;
+  string state = 5;
+  string country = 6;
+  string postal_code = 7;
+}
+
+message CreateOrderRequest {
+  string cart_id = 1;
+  DeliveryAddress delivery_address = 2;
+  google.protobuf.Timestamp delivery_time = 3;
+}
+
+message GetOrderRequest {
+  string order_id = 1;
+}
+
+message UpdateOrderStatusRequest {
+  string order_id = 1;
+  string status = 2;
+}
+
+message DeleteAddressRequest {
+  string address_id = 1;
+  string user_id = 2;
+}
+
+message ListAddressesRequest {
+  string user_id = 1;
+}
+
+message ListAddressesResponse {
+  repeated DeliveryAddress addresses = 1;
+}
+
+message SetDeliveryTimeRequest {
+  string order_id = 1;
+  google.protobuf.Timestamp delivery_time = 2;
+}
+
+message DeliverySlotsRequest {
+  string postal_code = 1;
+  google.protobuf.Timestamp date = 2;
+}
+
+message DeliverySlot {
+  google.protobuf.Timestamp start_time = 1;
+  google.protobuf.Timestamp end_time = 2;
+  bool available = 3;
+}
+
+message DeliverySlotsResponse {
+  string postal_code = 1;
+  google.protobuf.Timestamp date = 2;
+  repeated DeliverySlot slots = 3;
+} 
