@@ -1,0 +1,128 @@
+syntax = "proto3";
+
+package payment;
+
+option go_package = "github.com/hsibAD/payment-service/proto";
+
+import "google/protobuf/timestamp.proto";
+import "google/protobuf/empty.proto";
+
+service PaymentService {
+  // Payment Processing
+  rpc InitiatePayment(InitiatePaymentRequest) returns (Payment);
+  rpc ProcessCreditCardPayment(CreditCardPaymentRequest) returns (Payment);
+  rpc InitiateMetaMaskPayment(MetaMaskPaymentRequest) returns (MetaMaskPaymentResponse);
+  rpc ConfirmMetaMaskPayment(ConfirmMetaMaskPaymentRequest) returns (Payment);
+  
+  // Payment Status
+  rpc GetPayment(GetPaymentRequest) returns (Payment);
+  rpc GetPaymentsByOrder(GetPaymentsByOrderRequest) returns (GetPaymentsByOrderResponse);
+  rpc UpdatePaymentStatus(UpdatePaymentStatusRequest) returns (Payment);
+  
+  // Payment Recovery
+  rpc GetPendingPayments(GetPendingPaymentsRequest) returns (GetPendingPaymentsResponse);
+  rpc RetryPayment(RetryPaymentRequest) returns (Payment);
+}
+
+message Payment {
+  string id = 1;
+  string order_id = 2;
+  string user_id = 3;
+  double amount = 4;
+  string currency = 5;
+  PaymentStatus status = 6;
+  PaymentMethod payment_method = 7;
+  string transaction_id = 8;
+  string error_message = 9;
+  google.protobuf.Timestamp created_at = 10;
+  google.protobuf.Timestamp updated_at = 11;
+}
+
+message InitiatePaymentRequest {
+  string order_id = 1;
+  string user_id = 2;
+  double amount = 3;
+  string currency = 4;
+  PaymentMethod payment_method = 5;
+}
+
+message CreditCardPaymentRequest {
+  string payment_id = 1;
+  CreditCardInfo card_info = 2;
+}
+
+message CreditCardInfo {
+  string card_number = 1;
+  string expiry_month = 2;
+  string expiry_year = 3;
+  string cvv = 4;
+  string cardholder_name = 5;
+}
+
+message MetaMaskPaymentRequest {
+  string payment_id = 1;
+  string wallet_address = 2;
+}
+
+message MetaMaskPaymentResponse {
+  string payment_id = 1;
+  string transaction_hash = 2;
+  string contract_address = 3;
+  string payment_amount_wei = 4;
+}
+
+message ConfirmMetaMaskPaymentRequest {
+  string payment_id = 1;
+  string transaction_hash = 2;
+}
+
+message GetPaymentRequest {
+  string payment_id = 1;
+}
+
+message GetPaymentsByOrderRequest {
+  string order_id = 1;
+}
+
+message GetPaymentsByOrderResponse {
+  repeated Payment payments = 1;
+}
+
+message UpdatePaymentStatusRequest {
+  string payment_id = 1;
+  PaymentStatus status = 2;
+  string transaction_id = 3;
+  string error_message = 4;
+}
+
+message GetPendingPaymentsRequest {
+  string user_id = 1;
+  int32 page = 2;
+  int32 limit = 3;
+}
+
+message GetPendingPaymentsResponse {
+  repeated Payment payments = 1;
+  int32 total = 2;
+}
+
+message RetryPaymentRequest {
+  string payment_id = 1;
+  PaymentMethod new_payment_method = 2;
+}
+
+enum PaymentStatus {
+  PAYMENT_STATUS_UNSPECIFIED = 0;
+  PAYMENT_STATUS_PENDING = 1;
+  PAYMENT_STATUS_PROCESSING = 2;
+  PAYMENT_STATUS_COMPLETED = 3;
+  PAYMENT_STATUS_FAILED = 4;
+  PAYMENT_STATUS_CANCELLED = 5;
+  PAYMENT_STATUS_REFUNDED = 6;
+}
+
+enum PaymentMethod {
+  PAYMENT_METHOD_UNSPECIFIED = 0;
+  PAYMENT_METHOD_CREDIT_CARD = 1;
+  PAYMENT_METHOD_METAMASK = 2;
+} 
