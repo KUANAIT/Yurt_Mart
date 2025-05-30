@@ -2,6 +2,7 @@ package auth
 
 import (
 	"context"
+	"sync"
 	//"errors"
 	"time"
 
@@ -16,12 +17,15 @@ type Service struct {
 	pb.UnimplementedAuthServiceServer
 	jwtSecret   []byte
 	userService services.UserService
+	blacklist   map[string]time.Time
+	mu          sync.RWMutex
 }
 
 func NewService(jwtSecret string, userService services.UserService) *Service {
 	return &Service{
 		jwtSecret:   []byte(jwtSecret),
 		userService: userService,
+		blacklist:   make(map[string]time.Time),
 	}
 }
 
@@ -55,4 +59,61 @@ func (s *Service) Login(ctx context.Context, req *pb.LoginRequest) (*pb.LoginRes
 		UserId: user.ID,
 		Email:  user.Email,
 	}, nil
+}
+
+func (s *Service) Logout(ctx context.Context, req *pb.LogoutRequest) (*pb.LogoutResponse, error) {
+	if req.Token == "" {
+		return nil, status.Error(codes.InvalidArgument, "token is required")
+	}
+
+	// Parse the token to get expiration time
+	token, err := jwt.Parse(req.Token, func(token *jwt.Token) (interface{}, error) {
+		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+			return nil, status.Error(codes.InvalidArgument, "invalid token signing method")
+		}
+		return s.jwtSecret, nil
+	})
+
+	if err != nil {
+		return nil, status.Error(codes.InvalidArgument, "invalid token")
+	}
+
+	claims, ok := token.Claims.(jwt.MapClaims)
+	if !ok {
+		return nil, status.Error(codes.InvalidArgument, "invalid token claims")
+	}
+
+	// Add token to blacklist with its expiration time
+	exp, ok := claims["exp"].(float64)
+	if !ok {
+		return nil, status.Error(codes.InvalidArgument, "invalid token expiration")
+	}
+
+	s.mu.Lock()
+	s.blacklist[req.Token] = time.Unix(int64(exp), 0)
+	s.mu.Unlock()
+
+	return &pb.LogoutResponse{
+		Success: true,
+	}, nil
+}
+
+// Helper method to check if a token is blacklisted
+func (s *Service) isTokenBlacklisted(token string) bool {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	if exp, exists := s.blacklist[token]; exists {
+		if time.Now().After(exp) {
+			// Token has expired, remove from blacklist
+			s.mu.RUnlock()
+			s.mu.Lock()
+			delete(s.blacklist, token)
+			s.mu.Unlock()
+			s.mu.RLock()
+			return false
+		}
+		return true
+	}
+	return false
 }

@@ -9,6 +9,8 @@ service UserService {
   rpc GetUser(GetUserRequest) returns (GetUserResponse);
   rpc UpdateUser(UpdateUserRequest) returns (UpdateUserResponse);
   rpc DeleteUser(DeleteUserRequest) returns (DeleteUserResponse);
+  rpc GetUserByEmail(GetUserByEmailRequest) returns (GetUserByEmailResponse);
+  rpc ListUsers(ListUsersRequest) returns (ListUsersResponse);
 }
 
 message RegisterUserRequest {
@@ -49,4 +51,32 @@ message DeleteUserRequest {
 
 message DeleteUserResponse {
   bool success = 1;
+}
+
+message GetUserByEmailRequest {
+  string email = 1;
+}
+
+message GetUserByEmailResponse {
+  string user_id = 1;
+  string email = 2;
+  string name = 3;
+}
+
+message ListUsersRequest {
+  int32 page = 1;
+  int32 page_size = 2;
+}
+
+message ListUsersResponse {
+  repeated User users = 1;
+  int32 total = 2;
+  int32 page = 3;
+  int32 page_size = 4;
+}
+
+message User {
+  string user_id = 1;
+  string email = 2;
+  string name = 3;
 }

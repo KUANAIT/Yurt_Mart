@@ -191,3 +191,32 @@ func (r *MongoUserRepository) WithTransaction(ctx context.Context, fn func(conte
 	})
 	return err
 }
+
+func (r *MongoUserRepository) List(ctx context.Context, page, pageSize int) ([]*domain.User, int64, error) {
+	collection := r.client.Database(r.database).Collection(r.collection)
+
+	// Calculate skip value for pagination
+	skip := (page - 1) * pageSize
+
+	// Get total count
+	total, err := collection.CountDocuments(ctx, bson.M{})
+	if err != nil {
+		return nil, 0, err
+	}
+
+	// Find users with pagination
+	cursor, err := collection.Find(ctx, bson.M{}, options.Find().
+		SetSkip(int64(skip)).
+		SetLimit(int64(pageSize)))
+	if err != nil {
+		return nil, 0, err
+	}
+	defer cursor.Close(ctx)
+
+	var users []*domain.User
+	if err := cursor.All(ctx, &users); err != nil {
+		return nil, 0, err
+	}
+
+	return users, total, nil
+}

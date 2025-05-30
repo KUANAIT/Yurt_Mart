@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 	"time"
 
@@ -77,6 +78,7 @@ func (s *Server) setupRoutes() {
 		{
 			auth.POST("/login", s.handleLogin)
 			auth.POST("/register", s.handleRegister)
+			auth.POST("/logout", s.handleLogout)
 		}
 
 		// Protected routes
@@ -122,6 +124,28 @@ func (s *Server) handleLogin(c *gin.Context) {
 func (s *Server) handleRegister(c *gin.Context) {
 	// TODO: Implement user registration
 	c.JSON(http.StatusOK, gin.H{"message": "registration successful"})
+}
+
+func (s *Server) handleLogout(c *gin.Context) {
+	token := c.GetHeader("Authorization")
+	if token == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "authorization header is required"})
+		return
+	}
+
+	// Remove "Bearer " prefix if present
+	token = strings.TrimPrefix(token, "Bearer ")
+
+	// Call auth service to blacklist the token
+	_, err := s.authClient.Logout(c.Request.Context(), &pb.LogoutRequest{
+		Token: token,
+	})
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to logout"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "successfully logged out"})
 }
 
 func (s *Server) healthCheck(c *gin.Context) {

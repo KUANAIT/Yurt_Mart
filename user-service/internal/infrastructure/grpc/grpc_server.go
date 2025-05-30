@@ -117,6 +117,61 @@ func (s *Server) DeleteUser(ctx context.Context, req *user.DeleteUserRequest) (*
 	}, nil
 }
 
+func (s *Server) GetUserByEmail(ctx context.Context, req *user.GetUserByEmailRequest) (*user.GetUserByEmailResponse, error) {
+	start := time.Now()
+	defer func() {
+		duration := time.Since(start).Seconds()
+		metrics.RequestDuration.WithLabelValues("GetUserByEmail").Observe(duration)
+	}()
+
+	fetchedUser, err := s.userService.GetByEmail(ctx, req.Email)
+	if err != nil {
+		metrics.ErrorCount.WithLabelValues("GetUserByEmail", "not_found").Inc()
+		return nil, err
+	}
+
+	metrics.RequestCount.WithLabelValues("GetUserByEmail", "success").Inc()
+
+	return &user.GetUserByEmailResponse{
+		UserId: fetchedUser.ID,
+		Email:  fetchedUser.Email,
+		Name:   fetchedUser.Name,
+	}, nil
+}
+
+func (s *Server) ListUsers(ctx context.Context, req *user.ListUsersRequest) (*user.ListUsersResponse, error) {
+	start := time.Now()
+	defer func() {
+		duration := time.Since(start).Seconds()
+		metrics.RequestDuration.WithLabelValues("ListUsers").Observe(duration)
+	}()
+
+	users, total, err := s.userService.ListUsers(ctx, int(req.Page), int(req.PageSize))
+	if err != nil {
+		metrics.ErrorCount.WithLabelValues("ListUsers", "list_failed").Inc()
+		return nil, err
+	}
+
+	// Convert domain users to proto users
+	protoUsers := make([]*user.User, len(users))
+	for i, u := range users {
+		protoUsers[i] = &user.User{
+			UserId: u.ID,
+			Email:  u.Email,
+			Name:   u.Name,
+		}
+	}
+
+	metrics.RequestCount.WithLabelValues("ListUsers", "success").Inc()
+
+	return &user.ListUsersResponse{
+		Users:    protoUsers,
+		Total:    int32(total),
+		Page:     req.Page,
+		PageSize: req.PageSize,
+	}, nil
+}
+
 func StartGRPCServer(port int, userService services.UserService) error {
 	lis, err := net.Listen("tcp", fmt.Sprintf(":%d", port))
 	if err != nil {

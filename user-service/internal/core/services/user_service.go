@@ -16,6 +16,7 @@ type UserService interface {
 	UpdateUser(ctx context.Context, id, email, name string) (*domain.User, error)
 	DeleteUser(ctx context.Context, id string) error
 	VerifyPassword(hashedPassword, plainPassword string) bool
+	ListUsers(ctx context.Context, page, pageSize int) ([]*domain.User, int64, error)
 }
 
 type userService struct {
@@ -118,4 +119,20 @@ func (s *userService) DeleteUser(ctx context.Context, id string) error {
 
 func (s *userService) VerifyPassword(hashedPassword, plainPassword string) bool {
 	return utils.VerifyPassword(hashedPassword, plainPassword)
+}
+
+func (s *userService) ListUsers(ctx context.Context, page, pageSize int) ([]*domain.User, int64, error) {
+	if page < 1 {
+		page = 1
+	}
+	if pageSize < 1 {
+		pageSize = 10
+	}
+
+	users, total, err := s.repo.List(ctx, page, pageSize)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	return users, total, nil
 }

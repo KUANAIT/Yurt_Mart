@@ -12,8 +12,9 @@ import (
 )
 
 var (
-	ErrInvalidToken = errors.New("invalid token")
-	ErrExpiredToken = errors.New("token has expired")
+	ErrInvalidToken     = errors.New("invalid token")
+	ErrExpiredToken     = errors.New("token has expired")
+	ErrBlacklistedToken = errors.New("token has been blacklisted")
 )
 
 type Claims struct {
@@ -23,12 +24,14 @@ type Claims struct {
 }
 
 type JWTAuth struct {
-	config *order.AuthConfig
+	config     *order.AuthConfig
+	authClient AuthServiceClient
 }
 
-func NewJWTAuth(config *order.AuthConfig) *JWTAuth {
+func NewJWTAuth(config *order.AuthConfig, authClient AuthServiceClient) *JWTAuth {
 	return &JWTAuth{
-		config: config,
+		config:     config,
+		authClient: authClient,
 	}
 }
 
@@ -62,6 +65,14 @@ func (j *JWTAuth) ValidateToken(tokenString string) (*Claims, error) {
 	}
 
 	if claims, ok := token.Claims.(*Claims); ok && token.Valid {
+		// Check if token is blacklisted
+		isBlacklisted, err := j.authClient.IsTokenBlacklisted(tokenString)
+		if err != nil {
+			return nil, err
+		}
+		if isBlacklisted {
+			return nil, ErrBlacklistedToken
+		}
 		return claims, nil
 	}
 
@@ -70,13 +81,6 @@ func (j *JWTAuth) ValidateToken(tokenString string) (*Claims, error) {
 
 func (j *JWTAuth) Middleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		// Временно отключаем проверку токена для тестирования
-		c.Set("user_id", "test-user")
-		c.Set("role", "user")
-		c.Next()
-		return
-
-		// Оригинальный код проверки токена
 		authHeader := c.GetHeader("Authorization")
 		if authHeader == "" {
 			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "authorization header is required"})
@@ -91,11 +95,14 @@ func (j *JWTAuth) Middleware() gin.HandlerFunc {
 
 		claims, err := j.ValidateToken(parts[1])
 		if err != nil {
-			if errors.Is(err, ErrExpiredToken) {
+			switch {
+			case errors.Is(err, ErrExpiredToken):
 				c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "token has expired"})
-				return
+			case errors.Is(err, ErrBlacklistedToken):
+				c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "token has been invalidated"})
+			default:
+				c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "invalid token"})
 			}
-			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "invalid token"})
 			return
 		}
 
