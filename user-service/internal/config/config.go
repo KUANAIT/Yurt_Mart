@@ -27,8 +27,8 @@ func LoadConfig() *Config {
 		RedisAddress: getEnv("REDIS_ADDRESS", "localhost:6379"),
 		SMTPHost:     getEnv("SMTP_HOST", "smtp.mail.ru"),
 		SMTPPort:     getEnvAsInt("SMTP_PORT", 465),
-		SMTPUsername: getEnv("SMTP_USERNAME", "aytzhanovk@internet.ru"),
-		SMTPPassword: getEnv("SMTP_PASSWORD", "Q1mfUaA5BcuryV4Fo3Gq"),
+		SMTPUsername: getEnv("SMTP_USERNAME", "placeholer@internet.ru"),
+		SMTPPassword: getEnv("SMTP_PASSWORD", "placeholer"),
 		GRPCPort:     getEnvAsInt("GRPC_PORT", 50053),
 	}
 }
