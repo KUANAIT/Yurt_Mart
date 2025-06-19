@@ -9,9 +9,9 @@ func TestSMTPSender(t *testing.T) {
 	sender := email.NewSMTPSender(
 		"smtp.mail.ru",
 		465,
-		"aytzhanovk@internet.ru",
-		"Q1mfUaA5BcuryV4Fo3Gq",
-		"aytzhanovk@internet.ru",
+		"placeholder@internet.ru",
+		"placeholder",
+		"placeholder@internet.ru",
 	)
 
 	err := sender.SendWelcomeEmail("aytzhanovk@internet.ru", "Test User")
